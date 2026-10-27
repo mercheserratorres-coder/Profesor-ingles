@@ -51,7 +51,6 @@ button{width:100%}
 </head>
 <body>
 <main>
-
 <header>
 <h1>🎓 Mi profesor de inglés</h1>
 <p>Conversaciones naturales, correcciones amables y práctica a tu ritmo</p>
@@ -61,69 +60,40 @@ button{width:100%}
 <div id="setupBox" role="dialog" aria-modal="true">
 <h2>🎓 Configuración inicial</h2>
 <p>Solo hace falta hacerlo una vez en este dispositivo.</p>
-
 <label for="key">Clave de Google AI Studio</label>
 <input id="key" type="password" placeholder="Pega aquí tu clave API" autocomplete="off" spellcheck="false">
-
 <label for="studentName" style="margin-top:16px">Nombre del alumno (opcional)</label>
 <input id="studentName" placeholder="Nombre">
-
 <p id="setupError" aria-live="polite"></p>
 <button id="saveSetup" class="primary">Guardar y continuar</button>
-
-<p class="hint">
-La clave se guarda únicamente en este navegador, no se publica en GitHub.
-Utiliza esta aplicación solo en un dispositivo privado.
-</p>
+<p class="hint">La clave se guarda únicamente en este navegador, no se publica en GitHub. Utiliza esta aplicación solo en un dispositivo privado.</p>
 </div>
 </div>
 
 <section>
 <h2>Hablar en inglés</h2>
-
-<div id="status" role="status" aria-live="polite">
-Desconectado. Pulsa «Empezar conversación».
-</div>
-
+<div id="status" role="status" aria-live="polite">Desconectado. Pulsa «Empezar conversación».</div>
 <div class="actions">
 <button id="start" class="primary">🎙️ Empezar conversación</button>
 <button id="stop" class="danger" disabled>■ Terminar</button>
 <button id="recap" disabled>📝 Repasar lo aprendido</button>
 </div>
-
 <div id="liveCaption"></div>
-
-<p class="hint">
-Al empezar, acepta el permiso del micrófono.
-Habla con normalidad: el profesor te escuchará y responderá en voz alta.
-Puedes interrumpirlo como en una conversación real.
-</p>
+<p class="hint">Al empezar, acepta el permiso del micrófono. Habla con normalidad: el profesor te escuchará y responderá en voz alta. Puedes interrumpirlo como en una conversación real.</p>
 </section>
 
 <section>
 <h2>Mi cuaderno de aprendizaje</h2>
-
 <div class="actions">
 <button id="download">⬇ Guardar mi cuaderno</button>
 <button id="clear">🗑 Borrar cuaderno</button>
 <button id="settingsLink">⚙️ Configuración</button>
 </div>
-
-<p class="hint">
-Las frases transcritas se guardan automáticamente en este navegador.
-El profesor puede consultar parte de las sesiones anteriores.
-Utiliza «Guardar mi cuaderno» para conservar una copia.
-</p>
-
+<p class="hint">Las frases transcritas se guardan automáticamente en este navegador. El profesor puede consultar parte de las sesiones anteriores. Utiliza «Guardar mi cuaderno» para conservar una copia.</p>
 <div id="history" class="history"></div>
 </section>
 
-<div class="footer">
-Versión 2.1 · Necesita Internet y acceso a Gemini Live API.
-Los límites y la disponibilidad los establece Google.
-No activa ningún pago.
-</div>
-
+<div class="footer">Versión 2.2 · Necesita Internet y acceso a Gemini Live API. Los límites y la disponibilidad los establece Google. No activa ningún pago.</div>
 </main>
 
 <script>
@@ -259,14 +229,23 @@ function joinFragment(current, fragment) {
   if (fragment.startsWith(current)) return fragment;
   if (current.endsWith(fragment)) return current;
 
-  const separator =
-    /\s$/.test(current) ||
-    /^\s/.test(fragment) ||
-    /^[,.;:!?]/.test(fragment)
-      ? ''
-      : ' ';
+  // Conservar los espacios que envía Google.
+  if (/^\s/.test(fragment) || /\s$/.test(current)) {
+    return current + fragment;
+  }
 
-  return current + separator + fragment.trimStart();
+  // Los signos de puntuación no necesitan espacio delante.
+  if (/^[,.;:!?%)\]}]/.test(fragment)) {
+    return current + fragment;
+  }
+
+  // Después de un signo de apertura no añadimos espacio.
+  if (/[\(\[{¿¡]$/.test(current)) {
+    return current + fragment;
+  }
+
+  // Separar los fragmentos cuando no contienen espacios.
+  return current + ' ' + fragment;
 }
 
 function updateCaption() {
@@ -433,8 +412,6 @@ function playChunk(base64) {
 function makeInstructions() {
   const name = $('studentName').value.trim();
 
-  // Enviamos un historial breve para evitar
-  // solicitudes de configuración demasiado grandes.
   const recent = notes
     .slice(-8)
     .map(n => `${n.role}: ${n.text.slice(0, 160)}`)
